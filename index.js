@@ -62,8 +62,8 @@ app.post("/sign-up", async (req, res) => {
             return
         }
 
-        db.collection("signUps").insertOne(user)
-        res.status(201)
+        await db.collection("signUps").insertOne(user)
+        res.sendStatus(201)
 
     } catch (err) {
         res.status(500).send(err.message)
