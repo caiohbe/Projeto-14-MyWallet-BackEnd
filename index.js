@@ -25,17 +25,23 @@ const signUpSchema = joi.object({
     repeatPassword: joi.string().required()
 })
 
+const signInSchema = joi.object({
+    email: joi.string().required(),
+    password: joi.string().required()
+})
+
 app.post("/sign-up", async (req, res) => {
     const body = req.body
 
     const password = bcrypt.hashSync(body.password, 10)
 
     const user = {
-        ...body,
+        name: body.name,
+        email: body.email,
         password
     }
 
-    const validation = signUpSchema.validate(user, { abortEarly: false })
+    const validation = signUpSchema.validate(body, { abortEarly: false })
 
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message)
@@ -49,19 +55,23 @@ app.post("/sign-up", async (req, res) => {
     }
 
     try {
-        const signUps = await db.collection("sign-ups").find().toArray()
+        const signUps = await db.collection("signUps").find().toArray()
 
         if (signUps.find(s => s.email === user.email)) {
             res.status(409).send("Usuário já cadastrado.")
             return
         }
 
-        db.collection("sign-ups").insertOne(user)
+        db.collection("signUps").insertOne(user)
         res.status(201)
 
     } catch (err) {
         res.status(500).send(err.message)
     }
+})
+
+app.post("/sign-in", async (req, res) => {
+    
 })
 
 app.listen(5000, () => {
