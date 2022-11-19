@@ -71,7 +71,23 @@ app.post("/sign-up", async (req, res) => {
 })
 
 app.post("/sign-in", async (req, res) => {
+    const { email, password } = req.body
+
+    const validation = signInSchema.validate(req.body, { abortEarly: false })
+
+    if (validation.error) {
+        const errors = validation.error.details.map((detail) => detail.message)
+        res.status(422).send(errors)
+        return
+    }
+
+    const user = await db.collection("signUps").findOne({ email })
     
+    if (user && bcrypt.compareSync(password, user.password)) {
+        res.status(200).send("Deu certo")
+    } else {
+        res.status(401).send("Senha incorreta.")
+    }
 })
 
 app.listen(5000, () => {
