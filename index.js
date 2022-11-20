@@ -90,6 +90,7 @@ app.post("/sign-in", async (req, res) => {
     }
 
     const user = await db.collection("signUps").findOne({ email })
+    console.log(user)
     
     if (user && bcrypt.compareSync(password, user.password)) {
         const token = uuid()
@@ -99,7 +100,12 @@ app.post("/sign-in", async (req, res) => {
             token
         })
 
-        res.status(200).send(token)
+        const resObj = {
+            token,
+            name: user.name
+        }
+
+        res.status(200).send(resObj)
     } else {
         res.status(401).send("Senha incorreta.")
     }
