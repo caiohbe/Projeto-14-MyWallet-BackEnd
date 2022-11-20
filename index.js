@@ -125,10 +125,8 @@ app.get("/balances", async (req, res) => {
         if (!session) {
             res.status(401).send("Token inválido.")
         }
-        // console.log(session.userId)
         
         const user = await db.collection("signUps").findOne(session.userId)
-        console.log(user.email)
 
         const balances = await db.collection("balances").find().toArray()
         const userBalances = balances.filter(b => b.from === user.email)
@@ -142,6 +140,8 @@ app.get("/balances", async (req, res) => {
 })
 
 app.post("/balances", async (req, res) => {
+    const { authorization } = req.headers
+    const token = authorization?.replace("Bearer ", "")
     const validation = newBalanceSchema.validate(req.body, { abortEarly: false })
 
     if (validation.error) {
@@ -150,22 +150,22 @@ app.post("/balances", async (req, res) => {
         return
     }
 
-    if (!req.headers.user) {
-        res.status(404).send("Usuário indisponível")
-        return
+    if (!token) {
+        res.status(404).send("Token indisponível.")
     }
 
     try {
-        const user = await db.collection("signUps").find().toArray()
+        const session = await db.collection("sessions").findOne({ token })
 
-        if (!user.find((u) => u.email === req.headers.user)) {
-            res.status(404).send("Usuário inválido")
-            return
+        if (!session) {
+            res.status(401).send("Token inválido.")
         }
-    
+        
+        const user = await db.collection("signUps").findOne(session.userId)
+
         const newBalance = {
             ...req.body,
-            from: req.headers.user,
+            from: user.email,
             date: dayjs(Date.now()).format("DD/MM")
         }
     
