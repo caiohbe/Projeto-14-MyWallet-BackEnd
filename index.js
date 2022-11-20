@@ -3,6 +3,7 @@ import cors from "cors"
 import joi from "joi"
 import bcrypt from "bcrypt"
 import { MongoClient } from "mongodb"
+import { v4 as uuid } from "uuid"
 
 // Configs
 const app = express()
@@ -28,6 +29,12 @@ const signUpSchema = joi.object({
 const signInSchema = joi.object({
     email: joi.string().required(),
     password: joi.string().required()
+})
+
+const newBalanceSchema = joi.object({
+    description: joi.string().required(),
+    value: joi.number().required(),
+    type: joi.string().required().valid("outcome", "income")
 })
 
 app.post("/sign-up", async (req, res) => {
@@ -84,9 +91,82 @@ app.post("/sign-in", async (req, res) => {
     const user = await db.collection("signUps").findOne({ email })
     
     if (user && bcrypt.compareSync(password, user.password)) {
-        res.status(200).send("Deu certo")
+        const token = uuid()
+
+        await db.collection("sessions").insertOne({
+            userId: user._id,
+            token
+        })
+
+
+        res.status(200).send(token)
     } else {
         res.status(401).send("Senha incorreta.")
+    }
+})
+
+app.get("/balances", async (req, res) => {
+    const { authorization } = req.headers
+    const token = authorization?.replace("Bearer ", "")
+
+    if (!token) {
+        res.status(404).send("Token indisponível.")
+    }
+
+    try {
+        const session = await db.collection("sessions").findOne({ token })
+
+        if (!session) {
+            res.status(401).send("Token inválido.")
+        }
+        // console.log(session.userId)
+        
+        const user = await db.collection("signUps").findOne(session.userId)
+        console.log(user.email)
+
+        const balances = await db.collection("balances").find().toArray()
+        const userBalances = balances.filter(b => b.from === user.email)
+
+        res.send(userBalances)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+
+    
+})
+
+app.post("/balances", async (req, res) => {
+    const validation = newBalanceSchema.validate(req.body, { abortEarly: false })
+
+    if (validation.error) {
+        const errors = validation.error.details.map(detail => detail.message)
+        res.status(422).send(errors)
+        return
+    }
+
+    if (!req.headers.user) {
+        res.status(404).send("Usuário indisponível")
+        return
+    }
+
+    try {
+        const user = await db.collection("signUps").find().toArray()
+
+        if (!user.find((u) => u.email === req.headers.user)) {
+            res.status(404).send("Usuário inválido")
+            return
+        }
+    
+        const newBalance = {
+            ...req.body,
+            from: req.headers.user
+        }
+    
+        await db.collection("balances").insertOne(newBalance)
+        res.sendStatus(200)
+
+    } catch (err) {
+        res.status(500).send(err.message)
     }
 })
 
