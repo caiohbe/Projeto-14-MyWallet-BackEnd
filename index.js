@@ -2,6 +2,7 @@ import express from "express"
 import cors from "cors"
 import joi from "joi"
 import bcrypt from "bcrypt"
+import dayjs from "dayjs"
 import { MongoClient } from "mongodb"
 import { v4 as uuid } from "uuid"
 
@@ -98,7 +99,6 @@ app.post("/sign-in", async (req, res) => {
             token
         })
 
-
         res.status(200).send(token)
     } else {
         res.status(401).send("Senha incorreta.")
@@ -159,7 +159,8 @@ app.post("/balances", async (req, res) => {
     
         const newBalance = {
             ...req.body,
-            from: req.headers.user
+            from: req.headers.user,
+            date: dayjs(Date.now()).format("DD/MM")
         }
     
         await db.collection("balances").insertOne(newBalance)
