@@ -1,14 +1,9 @@
 import dayjs from "dayjs"
-import { newBalanceSchema } from "../../index.js"
 import db from "../database/db.js"
 
 export async function getBalances (req, res) {
     const { authorization } = req.headers
     const token = authorization?.replace("Bearer ", "")
-
-    if (!token) {
-        res.status(404).send("Token indisponível.")
-    }
 
     try {
         const session = await db.collection("sessions").findOne({ token })
@@ -31,17 +26,6 @@ export async function getBalances (req, res) {
 export async function postBalances (req, res) {
     const { authorization } = req.headers
     const token = authorization?.replace("Bearer ", "")
-    const validation = newBalanceSchema.validate(req.body, { abortEarly: false })
-
-    if (validation.error) {
-        const errors = validation.error.details.map(detail => detail.message)
-        res.status(422).send(errors)
-        return
-    }
-
-    if (!token) {
-        res.status(404).send("Token indisponível.")
-    }
 
     try {
         const session = await db.collection("sessions").findOne({ token })

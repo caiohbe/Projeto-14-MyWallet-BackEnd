@@ -1,19 +1,9 @@
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
-import { signInSchema, signUpSchema } from "../../index.js"
 import db from "../database/db.js"
 
 export async function postSignUp (req, res) {
     const body = req.body
-
-    const validation = signUpSchema.validate(body, { abortEarly: false })
-
-    if (validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message)
-        res.status(422).send(errors)
-        return
-    }
-
     const password = bcrypt.hashSync(body.password, 10)
 
     const user = {
@@ -46,16 +36,7 @@ export async function postSignUp (req, res) {
 export async function postSignIn (req, res) {
     const { email, password } = req.body
 
-    const validation = signInSchema.validate(req.body, { abortEarly: false })
-
-    if (validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message)
-        res.status(422).send(errors)
-        return
-    }
-
     const user = await db.collection("signUps").findOne({ email })
-    console.log(user)
     
     if (user && bcrypt.compareSync(password, user.password)) {
         const token = uuid()
